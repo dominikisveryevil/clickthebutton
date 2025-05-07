@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>catch the fucking button</title>
+  <style>
+    body {
+      margin: 0;
+      background: #fff0f5;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Comic Sans MS', cursive;
+    }
+
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .btn {
+      position: absolute;
+      padding: 15px 25px;
+      font-size: 18px;
+      background-color: #aaa;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+      font-family: 'Comic Sans MS', cursive;
+    }
+
+    .btn:hover {
+      transform: scale(1.1);
+    }
+
+    .explode {
+      animation: explode 0.5s forwards;
+    }
+
+    @keyframes explode {
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    #scoreBoard, #timer, #realTime {
+      position: absolute;
+      top: 10px;
+      font-size: 20px;
+      color: #444;
+      font-family: 'Comic Sans MS', cursive;
+    }
+
+    #scoreBoard { left: 10px; }
+    #timer { right: 10px; }
+    #realTime { left: 50%; transform: translateX(-50%); }
+
+    .game-over {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 36px;
+      color: red;
+      text-align: center;
+      font-family: 'Comic Sans MS', cursive;
+    }
+
+    .retry-btn {
+      margin-top: 20px;
+      padding: 12px 24px;
+      background-color: #ff66aa;
+      color: white;
+      font-size: 20px;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      font-family: 'Comic Sans MS', cursive;
+      transition: background-color 0.3s ease;
+    }
+
+    .retry-btn:hover {
+      background-color: #ff2288;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="scoreBoard">Score: 0</div>
+    <div id="realTime">Time Alive: 0s</div>
+    <div id="timer">Round Time: 10</div>
+  </div>
+
+  <script>
+    const container = document.getElementById("container");
+    const scoreBoard = document.getElementById("scoreBoard");
+    const timerDisplay = document.getElementById("timer");
+    const realTimeDisplay = document.getElementById("realTime");
+
+    let score = 0;
+    let roundTime = 10;
+    let roundInterval;
+    let realTime = 0;
+    let realTimeInterval;
+    let correctBtn;
+
+    function startGame() {
+      score = 0;
+      realTime = 0;
+      updateScore();
+      updateRealTime();
+
+      if (document.querySelector(".game-over")) {
+        document.querySelector(".game-over").remove();
+      }
+
+      clearInterval(realTimeInterval);
+      realTimeInterval = setInterval(() => {
+        realTime++;
+        updateRealTime();
+      }, 1000);
+
+      startRound();
+    }
+
+    function startRound() {
+      clearButtons();
+      roundTime = getTimeForScore(score);
+      updateRoundTimer();
+      spawnButtons();
+
+      clearInterval(roundInterval);
+      roundInterval = setInterval(() => {
+        roundTime--;
+        updateRoundTimer();
+        if (roundTime <= 0) gameOver();
+      }, 1000);
+    }
+
+    function getTimeForScore(score) {
+      return Math.max(4, 10 - Math.floor(score / 5));
+    }
+
+    function getButtonCount(score) {
+      return Math.min(30, 5 + Math.floor(score * 1.5));
+    }
+
+    function updateRoundTimer() {
+      timerDisplay.textContent = `time left : ${roundTime}`;
+    }
+
+    function updateRealTime() {
+      realTimeDisplay.textContent = `time : ${realTime}s`;
+    }
+
+    function updateScore() {
+      scoreBoard.textContent = `Score: ${score}`;
+    }
+
+    function clearButtons() {
+      container.querySelectorAll(".btn").forEach(btn => btn.remove());
+    }
+
+    function spawnButtons() {
+      const count = getButtonCount(score);
+      const correctIndex = Math.floor(Math.random() * count);
+
+      for (let i = 0; i < count; i++) {
+        const btn = document.createElement("button");
+        btn.className = "btn";
+        btn.textContent = "Click me";
+
+        const maxX = container.clientWidth - 100;
+        const maxY = container.clientHeight - 60;
+        btn.style.left = `${Math.random() * maxX}px`;
+        btn.style.top = `${Math.random() * maxY}px`;
+
+        if (i === correctIndex) {
+          correctBtn = btn;
+          btn.addEventListener("click", () => {
+            clearInterval(roundInterval);
+            score++;
+            updateScore();
+            startRound();
+          });
+        } else {
+          btn.addEventListener("mouseenter", () => {
+            const newX = Math.random() * maxX;
+            const newY = Math.random() * maxY;
+            btn.style.left = `${newX}px`;
+            btn.style.top = `${newY}px`;
+          });
+
+          btn.addEventListener("click", () => {
+            btn.classList.add("explode");
+            setTimeout(() => btn.remove(), 500);
+          });
+        }
+
+        container.appendChild(btn);
+      }
+    }
+
+    function gameOver() {
+      clearInterval(roundInterval);
+      clearInterval(realTimeInterval);
+      clearButtons();
+
+      const msg = document.createElement("div");
+      msg.className = "game-over";
+      msg.innerHTML = `
+        TIMES UP<br>
+        Final Score: ${score}<br>
+        You survived ${realTime}s<br>
+        <button class="retry-btn" onclick="startGame()">Try Again</button>
+      `;
+      container.appendChild(msg);
+    }
+
+    // Start game on page load
+    startGame();
+  </script>
+</body>
+</html>
